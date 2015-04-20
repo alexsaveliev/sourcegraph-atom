@@ -1,3 +1,7 @@
+## 0.2.1 Bugfix release.
+
+ * Set current working dir for all invocations of `src` tool.
+
 ## 0.2
 
  * On fresh install have the plugin in enabled state. Issue #18.
