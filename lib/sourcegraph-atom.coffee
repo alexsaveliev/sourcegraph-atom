@@ -127,6 +127,8 @@ module.exports =
 
     editor = atom.workspace.getActiveTextEditor()
     filePath = editor.getPath()
+    # Figure out project directory for editors file.
+    [projectPath, relPath] = atom.project.relativizePath(filePath)
 
     offset = util.positionToByte(editor, editor.getCursorBufferPosition())
     command = "#{util.getSrcBin()} api describe
@@ -138,6 +140,7 @@ module.exports =
     child_process.exec(command,
       maxBuffer: 200 * 1024 * 100,
       env: util.getEnv(),
+      cwd: projectPath,
       (error, stdout, stderr) =>
         if error
           @statusView.error("#{command}: #{stderr}")
@@ -182,9 +185,13 @@ module.exports =
                 --start-byte=#{offset}"
     @statusView.inprogress("Documentation and Examples: #{command}")
 
+    # Figure out project directory for editors file.
+    [projectPath, relPath] = atom.project.relativizePath(filePath)
+
     child_process.exec(command,
       maxBuffer: 200 * 1024 * 100,
-      env: util.getEnv()
+      env: util.getEnv(),
+      cwd: projectPath,
       (error, stdout, stderr) =>
         if error
           @statusView.error("#{command}: #{stderr}")
