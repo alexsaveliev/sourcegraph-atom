@@ -55,6 +55,7 @@ class SrclibStatusView extends View
     if html
       @messages.add(new PlainMessageView({
         message: html,
+        raw: true
         className: 'text-info'
       }))
 
@@ -68,6 +69,7 @@ class SrclibStatusView extends View
     if html
       @messages.add(new PlainMessageView({
         message: html,
+        raw: true,
         className: 'text-error'
       }))
 
@@ -81,6 +83,7 @@ class SrclibStatusView extends View
     if html
       @messages.add(new PlainMessageView({
         message: html,
+        raw: true,
         className: 'text-warning'
       }))
 
@@ -97,6 +100,7 @@ class SrclibStatusView extends View
     if html
       @messages.add(new PlainMessageView({
         message: html,
+        raw: true,
         className: 'text-success'
       }))
 
