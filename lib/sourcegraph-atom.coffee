@@ -38,6 +38,13 @@ module.exports =
         Path to src executable. By default, this assumes
         it is already in the path.
       '
+    srcTimeout:
+      type: 'number'
+      default: 10000
+      description: '
+        Timeout for src command in miliseconds.
+        After timeout expires `src` command will be terminated.
+      '
     highlightReferencesInFile:
       type: 'boolean'
       default: true
@@ -141,9 +148,15 @@ module.exports =
       maxBuffer: 200 * 1024 * 100,
       env: util.getEnv(),
       cwd: projectPath,
+      timeout: atom.config.get('sourcegraph-atom.srcTimeout'),
       (error, stdout, stderr) =>
         if error
-          @statusView.error("#{command}: #{stderr}")
+          if error.killed
+            @statusView.error("Command timed out.
+            Try increasing `src timeout` in sourcegraph-atom settings.
+            <br\>Command was: #{command}
+            ")
+          else @statusView.error("#{command}: #{stderr}")
         else
           result = JSON.parse(stdout)
 
@@ -192,9 +205,13 @@ module.exports =
       maxBuffer: 200 * 1024 * 100,
       env: util.getEnv(),
       cwd: projectPath,
+      timeout: atom.config.get('sourcegraph-atom.srcTimeout'),
       (error, stdout, stderr) =>
         if error
-          @statusView.error("#{command}: #{stderr}")
+          if error.killed
+            @statusView.error("Command timed out :#{command}
+            <br/>Try increasing `Src Timeout` in sourcegraph-atom settings.")
+          else @statusView.error("#{command}: #{stderr}")
         else
           result = JSON.parse(stdout)
           if not result.Def
