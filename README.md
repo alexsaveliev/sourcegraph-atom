@@ -13,9 +13,6 @@ This is still work in progress.
 
  - Go is the most stable toolchain (language support). Other languages
    are not as well supported as Go.
- - Race condition in `src`. Sometimes when running multiple `src`
-   commands at the same time they will fail. This is going to be fixed
-   upstream (in the `src` tool) soon.
 
 ## Current features:
 
