@@ -1,5 +1,4 @@
 {CompositeDisposable} = require 'atom'
-child_process = require 'child_process'
 fs = require 'fs'
 
 util = require './util'
@@ -7,7 +6,7 @@ IdentifierHighlighter = require './identifier-highlighter'
 SrclibStatusView = require './srclib-status-view'
 SearchView = require './sourcegraph-search-view'
 ExamplesView = require './sourcegraph-examples-view'
-
+CommandQueue = require './command-queue'
 
 module.exports =
   config:
@@ -40,7 +39,7 @@ module.exports =
       '
     srcTimeout:
       type: 'number'
-      default: 10000
+      default: 30000
       description: '
         Timeout for src command in miliseconds.
         After timeout expires `src` command will be terminated.
@@ -61,9 +60,8 @@ module.exports =
       process.env.PATH += ':/usr/local/bin'
 
     @statusView = new SrclibStatusView()
-
     @searchView = new SearchView(state.viewState)
-
+    @commandQueue = new CommandQueue()
     @subscriptions = new CompositeDisposable
 
     # Defaults.
@@ -72,7 +70,8 @@ module.exports =
     @highlighters = []
     atom.packages.onDidActivateInitialPackages =>
       atom.workspace.observeTextEditors (editor) =>
-        hl = new IdentifierHighlighter(editor, @statusView, state.enabled)
+        hl = new IdentifierHighlighter(editor, @statusView, state.enabled,
+          @commandQueue)
         @highlighters.push hl
         # When editor is destroyed remove highlighter.
         @subscriptions.add editor.onDidDestroy(=>
@@ -143,19 +142,14 @@ module.exports =
                 --start-byte=#{offset}
                 --no-examples"
 
-    @statusView.inprogress("Jump to Definition: #{command}")
-    child_process.exec(command,
-      maxBuffer: 200 * 1024 * 100,
-      env: util.getEnv(),
-      cwd: projectPath,
-      timeout: atom.config.get('sourcegraph-atom.srcTimeout'),
-      (error, stdout, stderr) =>
+    @commandQueue.enqueue(command, projectPath,
+      before: =>  @statusView.inprogress("Jump to Definition: #{command}")
+      execCallback: (error, stdout, stderr) =>
         if error
           if error.killed
             @statusView.error("Command timed out.
-            Try increasing `src timeout` in sourcegraph-atom settings.
-            <br\>Command was: #{command}
-            ")
+              Try increasing `src timeout` in sourcegraph-atom settings.
+              <br\>Command was: #{command}")
           else @statusView.error("#{command}: #{stderr}")
         else
           result = JSON.parse(stdout)
@@ -196,21 +190,19 @@ module.exports =
     command = "#{util.getSrcBin()} api describe
                 --file=\"#{filePath}\"
                 --start-byte=#{offset}"
-    @statusView.inprogress("Documentation and Examples: #{command}")
 
     # Figure out project directory for editors file.
     [projectPath, relPath] = atom.project.relativizePath(filePath)
 
-    child_process.exec(command,
-      maxBuffer: 200 * 1024 * 100,
-      env: util.getEnv(),
-      cwd: projectPath,
-      timeout: atom.config.get('sourcegraph-atom.srcTimeout'),
-      (error, stdout, stderr) =>
+    @commandQueue.enqueue(command, projectPath,
+      before: =>
+        @statusView.inprogress("Documentation and Examples: #{command}")
+      execCallback: (error, stdout, stderr) =>
         if error
           if error.killed
-            @statusView.error("Command timed out :#{command}
-            <br/>Try increasing `Src Timeout` in sourcegraph-atom settings.")
+            @statusView.error("Command timed out.
+              Try increasing `src timeout` in sourcegraph-atom settings.
+              <br\>Command was: #{command}")
           else @statusView.error("#{command}: #{stderr}")
         else
           result = JSON.parse(stdout)

@@ -5,7 +5,7 @@ util = require './util'
 
 module.exports =
 class IdentifierHighlighter
-  constructor: (@editor, @statusView, @enabled) ->
+  constructor: (@editor, @statusView, @enabled, @commandQueue) ->
     @markers = []
 
     @buffer = @editor?.getBuffer()
@@ -62,36 +62,38 @@ class IdentifierHighlighter
       command = "#{util.getSrcBin()} api list
                   --file \"#{filePath}\""
 
-      @statusView.inprogress("Finding list of references in file: #{command}")
-      child_process.exec(command, {
-        maxBuffer: 200 * 1024 * 100,
-        env: util.getEnv(),
-        cwd: projectPath,
-      }, (error, stdout, stderr) =>
-
-        if error
-          @statusView.error("#{command}: #{stderr}")
-        else
-          try
-            output = JSON.parse(stdout)
-          catch error
-            @statusView.error("Parsing Error: #{stdout}")
-            throw error
-          if output?.Refs
-            for ref in output.Refs
-              start = util.byteToPosition(@editor, ref.Start)
-              end = util.byteToPosition(@editor, ref.End)
-
-              range = new Range(start, end)
-              marker = @editor.markBufferRange(range)
-              decoration = @editor.decorateMarker(marker,
-               type: 'highlight',
-               class: 'sourcegraph-identifier'
-              )
-              @markers.push(marker)
-            @statusView.success('Highlighted all refs.')
+      @commandQueue.enqueue(command, projectPath,
+        before: =>
+          @statusView.inprogress("Finding list of references
+            in file: #{command}")
+        execCallback: (error, stdout, stderr) =>
+          if error
+            if error.killed
+              @statusView.error("Command timed out.
+                Try increasing `src timeout` in sourcegraph-atom settings.
+                <br\>Command was: #{command}")
+            else @statusView.error("#{command}: #{stderr}")
           else
-            @statusView.warn('No references in this file.')
+            try
+              output = JSON.parse(stdout)
+            catch error
+              @statusView.error("Parsing Error: #{stdout}")
+              throw error
+            if output?.Refs
+              for ref in output.Refs
+                start = util.byteToPosition(@editor, ref.Start)
+                end = util.byteToPosition(@editor, ref.End)
+
+                range = new Range(start, end)
+                marker = @editor.markBufferRange(range)
+                decoration = @editor.decorateMarker(marker,
+                 type: 'highlight',
+                 class: 'sourcegraph-identifier'
+                )
+                @markers.push(marker)
+              @statusView.success('Highlighted all refs.')
+            else
+              @statusView.warn('No references in this file.')
       )
 
   # Enable highlighter.
