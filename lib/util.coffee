@@ -1,10 +1,11 @@
 {exec} = require('child_process')
+pathpkg = require 'path'
 
 module.exports =
-  # Get `src` binary location.
+  # Get `srclib` binary location.
   getSrcBin: ->
     location = atom.config.get('sourcegraph-atom.srcExecutablePath').trim()
-    return if location.length then location else 'src'
+    return if location.length then location else 'srclib'
 
   # Get process ENV. Also sets GOPATH and GOROOT and adjusts GOPATH.
   getEnv: ->
@@ -15,9 +16,9 @@ module.exports =
     if goRoot.length
       process.env.GOROOT = goRoot
     path = atom.config.get('sourcegraph-atom.path').trim()
-    for p in path.split(':')
-      if p not in process.env.PATH.split(':')
-        process.env.PATH += ':' + p
+    for p in path.split(pathpkg.delimiter)
+      if p not in process.env.PATH.split(pathpkg.delimiter)
+        process.env.PATH += pathpkg.delimiter + p
     return process.env
 
   # Open browser.
@@ -37,9 +38,9 @@ module.exports =
   # Convert byte position to editor position.
   byteToPosition: (editor, byte) ->
     # FIXME: Only works for ASCII
-    editor.buffer.positionForCharacterIndex(byte)
+    editor.getBuffer().positionForCharacterIndex(byte)
 
   # Convert editor position to byte position.
   positionToByte: (editor, point) ->
     # FIXME: Only works for ASCII
-    editor.buffer.characterIndexForPosition(point)
+    editor.getBuffer().characterIndexForPosition(point)

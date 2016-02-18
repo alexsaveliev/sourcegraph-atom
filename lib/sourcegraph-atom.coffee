@@ -29,20 +29,20 @@ module.exports =
     path:
       type: 'string'
       default: ''
-      description: 'Add items to your PATH, separated by \':\''
+      description: 'Add items to your PATH, separated by system-specific path separator'
     srcExecutablePath:
       type: 'string'
       default: ''
       description: '
-        Path to src executable. By default, this assumes
+        Path to srclib executable. By default, this assumes
         it is already in the path.
       '
     srcTimeout:
       type: 'number'
       default: 30000
       description: '
-        Timeout for src command in miliseconds.
-        After timeout expires `src` command will be terminated.
+        Timeout for srclib command in miliseconds.
+        After timeout expires `srclib` command will be terminated.
       '
     highlightReferencesInFile:
       type: 'boolean'
@@ -55,9 +55,10 @@ module.exports =
       default: false
 
   activate: (state) ->
-    # Ensure that Atom's path has common src locations
-    if '/usr/local/bin' not in process.env.PATH.split(':')
-      process.env.PATH += ':/usr/local/bin'
+    # Ensure that Atom's path has common srclib locations
+    if process.platform != 'win32'
+      if '/usr/local/bin' not in process.env.PATH.split(':')
+          process.env.PATH += ':/usr/local/bin'
 
     @statusView = new SrclibStatusView()
     @searchView = new SearchView(state.viewState)
@@ -139,8 +140,7 @@ module.exports =
     offset = util.positionToByte(editor, editor.getCursorBufferPosition())
     command = "#{util.getSrcBin()} api describe
                 --file=\"#{filePath}\"
-                --start-byte=#{offset}
-                --no-examples"
+                --start-byte=#{offset}"
 
     @commandQueue.enqueue(command, projectPath,
       before: =>  @statusView.inprogress("Jump to Definition: #{command}")
@@ -148,7 +148,7 @@ module.exports =
         if error
           if error.killed
             @statusView.error("Command timed out.
-              Try increasing `src timeout` in sourcegraph-atom settings.
+              Try increasing `srclib timeout` in sourcegraph-atom settings.
               <br\>Command was: #{command}")
           else @statusView.error("#{command}: #{stderr}")
         else
@@ -201,7 +201,7 @@ module.exports =
         if error
           if error.killed
             @statusView.error("Command timed out.
-              Try increasing `src timeout` in sourcegraph-atom settings.
+              Try increasing `srclib timeout` in sourcegraph-atom settings.
               <br\>Command was: #{command}")
           else @statusView.error("#{command}: #{stderr}")
         else

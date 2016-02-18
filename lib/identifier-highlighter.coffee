@@ -70,7 +70,7 @@ class IdentifierHighlighter
           if error
             if error.killed
               @statusView.error("Command timed out.
-                Try increasing `src timeout` in sourcegraph-atom settings.
+                Try increasing `srclib timeout` in sourcegraph-atom settings.
                 <br\>Command was: #{command}")
             else @statusView.error("#{command}: #{stderr}")
           else
